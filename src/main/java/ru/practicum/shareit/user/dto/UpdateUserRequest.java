@@ -13,6 +13,7 @@ public class UpdateUserRequest {
     public Boolean isNameEmpty() {
         return name == null || name.isEmpty();
     }
+
     public Boolean isEmailEmpty() {
         return email == null || email.isEmpty();
     }
