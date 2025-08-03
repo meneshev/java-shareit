@@ -1,6 +1,6 @@
 package ru.practicum.shareit.item;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.item.dto.CreateItemRequest;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -9,27 +9,21 @@ import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserService;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
 
-    private final ItemStorage itemStorage;
+    private final ItemStorage itemRepository;
     private final UserService userService;
-
-    public ItemServiceImpl(@Qualifier("inMemoryItemRepository") ItemStorage itemStorage,
-                           UserService userService) {
-        this.itemStorage = itemStorage;
-        this.userService = userService;
-    }
 
     public ItemDto createItem(CreateItemRequest request, Long userId) {
         checkUserId(userId);
         Item itemToCreate = ItemMapper.mapToEntity(request, userId);
-        itemToCreate = itemStorage.create(itemToCreate,  userId);
+        itemToCreate = itemRepository.create(itemToCreate,  userId);
         return ItemMapper.mapToDto(itemToCreate);
     }
 
@@ -38,7 +32,7 @@ public class ItemServiceImpl implements ItemService {
         checkUserId(userId);
 
         ItemDto oldItemData = getItemById(itemId);
-        validateItem(itemStorage.findById(itemId).get(), userId);
+        validateItem(itemRepository.findById(itemId).get(), userId);
 
         if (request.isNameEmpty()) {
             request.setName(oldItemData.getName());
@@ -52,21 +46,21 @@ public class ItemServiceImpl implements ItemService {
             request.setAvailable(oldItemData.getAvailable());
         }
         Item itemToUpdate = ItemMapper.mapToEntity(request, userId, itemId);
-        itemToUpdate = itemStorage.update(itemToUpdate);
+        itemToUpdate = itemRepository.update(itemToUpdate);
         return ItemMapper.mapToDto(itemToUpdate);
     }
 
     @Override
     public Boolean deleteItem(Long itemId, Long userId) {
         checkUserId(userId);
-        itemStorage.findById(itemId);
-        validateItem(itemStorage.findById(itemId).get(), userId);
-        return itemStorage.delete(itemId);
+        itemRepository.findById(itemId);
+        validateItem(itemRepository.findById(itemId).get(), userId);
+        return itemRepository.delete(itemId);
     }
 
     @Override
     public ItemDto getItemById(Long itemId) {
-        return itemStorage.findById(itemId)
+        return itemRepository.findById(itemId)
                 .map(ItemMapper::mapToDto)
                 .orElseThrow(() -> new NotFoundException("Item not found"));
     }
@@ -74,7 +68,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> getItemsByUserId(Long userId) {
         checkUserId(userId);
-        return itemStorage.findAll().stream()
+        return itemRepository.findAll().stream()
                 .filter(item -> Objects.equals(item.getOwnerId(), userId))
                 .map(ItemMapper::mapToDto)
                 .collect(Collectors.toList());
@@ -86,7 +80,7 @@ public class ItemServiceImpl implements ItemService {
         if (searchString == null || searchString.isEmpty()) {
             return List.of();
         }
-        return itemStorage.findAll().stream()
+        return itemRepository.findAll().stream()
                 .filter(item -> item.getName().toLowerCase().contains(searchString.toLowerCase())
                         || item.getDescription().toLowerCase().contains(searchString.toLowerCase()))
                 .filter(item -> item.getIsAvailable() != null && item.getIsAvailable())

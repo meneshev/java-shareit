@@ -1,12 +1,10 @@
 package ru.practicum.shareit.item;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.item.model.Item;
 import java.util.*;
 
 @Repository
-@Qualifier("inMemoryItemRepository")
 public class ItemRepository implements ItemStorage {
     private final Map<Long, Item> itemsMap = new HashMap<>();
     private static Long nextId = 1L;
