@@ -1,13 +1,11 @@
 package ru.practicum.shareit.user;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.exception.ValidationException;
 import java.util.*;
 
 @Repository
-@Qualifier("inMemoryUserRepository")
 public class UserRepository implements UserStorage {
     private final Map<Long, User> usersMap = new HashMap<>();
     private final Map<String, Long> emails = new HashMap<>();
