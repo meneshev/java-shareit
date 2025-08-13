@@ -1,45 +1,30 @@
 package ru.practicum.shareit.item;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import ru.practicum.shareit.item.model.Item;
-import java.util.*;
+import ru.practicum.shareit.user.model.User;
+import java.util.List;
 
-@Repository
-public class ItemRepository implements ItemStorage {
-    private final Map<Long, Item> itemsMap = new HashMap<>();
-    private static Long nextId = 1L;
+public interface ItemRepository  extends JpaRepository<Item, Long> {
+    List<Item> findByOwner(User user);
 
-    private Long getNextId() {
-        return nextId++;
-    }
+    @Query("""
+    select it
+    from Item it
+    where (it.name ilike concat('%', ?1, '%') or it.description ilike concat('%', ?2, '%'))
+    and it.isAvailable = ?3
+    """)
+    List<Item> findBySearchString(String name, String description, Boolean isAvailable);
 
-    @Override
-    public Item create(Item item, Long userId) {
-        item.setId(getNextId());
-        item.setOwnerId(userId);
-        itemsMap.put(item.getId(), item);
-        return item;
-    }
+    @Query("""
+    select
+        it.id id,
+        it.name name
+    from Item it
+    where it.id = ?1
+    """)
+    ItemShort findShort(Long itemId);
 
-    @Override
-    public Item update(Item item) {
-        itemsMap.put(item.getId(), item);
-        return item;
-    }
-
-    @Override
-    public Boolean delete(Long itemId) {
-        return itemsMap.remove(itemId) != null;
-    }
-
-    @Override
-    public Optional<Item> findById(Long itemId) {
-        return Optional.ofNullable(itemsMap.get(itemId));
-    }
-
-    @Override
-    public List<Item> findAll() {
-        return new ArrayList<>(itemsMap.values());
-    }
-
+    List<Item> findAllByOwner_Id(Long ownerId);
 }

@@ -2,6 +2,8 @@ package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.dto.CreateUserRequest;
 import ru.practicum.shareit.user.dto.UpdateUserRequest;
 import ru.practicum.shareit.user.dto.UserDto;
@@ -12,18 +14,22 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
-    private final UserStorage userRepository;
+    private final UserRepository userRepository;
 
+    @Override
+    @Transactional
     public UserDto createUser(CreateUserRequest request) {
-        User userToCreate = UserMapper.mapToEntity(request);
-        userToCreate = userRepository.create(userToCreate);
-        return UserMapper.mapToDto(userToCreate);
+        User createdUser = userRepository.save(UserMapper.mapToEntity(request));
+        return UserMapper.mapToDto(createdUser);
     }
 
+    @Override
+    @Transactional
     public UserDto updateUser(UpdateUserRequest request, Long userId) {
-        UserDto oldUserData = getUserById(userId);
+        UserDto oldUserData = getUserDtoById(userId);
         if (request.isNameEmpty()) {
             request.setName(oldUserData.getName());
         }
@@ -32,24 +38,43 @@ public class UserServiceImpl implements UserService {
             request.setEmail(oldUserData.getEmail());
         }
         User userToUpdate = UserMapper.mapToEntity(request, userId);
-        userToUpdate = userRepository.update(userToUpdate);
+        userToUpdate = userRepository.save(userToUpdate);
         return UserMapper.mapToDto(userToUpdate);
     }
 
-    public Boolean deleteUser(Long id) {
-        getUserById(id);
-        return userRepository.delete(id);
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        User userToDelete = UserMapper.mapToEntity(getUserDtoById(id));
+        userRepository.delete(userToDelete);
     }
 
-    public UserDto getUserById(Long id) {
+    @Override
+    public UserDto getUserDtoById(Long id) {
         return userRepository.findById(id)
                 .map(UserMapper::mapToDto)
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
+    @Override
     public List<UserDto> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(UserMapper::mapToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void checkUserId(Long userId) {
+        if (userId == null) {
+            throw new ValidationException("X-Sharer-User-Id is null");
+        } else {
+            getUserDtoById(userId);
+        }
+    }
+
+    @Override
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }

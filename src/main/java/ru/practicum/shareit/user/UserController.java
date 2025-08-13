@@ -30,17 +30,14 @@ public class UserController {
 
     @DeleteMapping("/{user-id}")
     public ResponseEntity<String> deleteUser(@PathVariable("user-id") Long userId) {
-        if (userService.deleteUser(userId)) {
-            return new ResponseEntity<>("User has been deleted", HttpStatus.OK);
-        } else  {
-            return new ResponseEntity<>("Error during deleting", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        userService.deleteUser(userId);
+        return new ResponseEntity<>("User has been deleted", HttpStatus.OK);
     }
 
     @GetMapping("/{user-id}")
     @ResponseStatus(HttpStatus.OK)
     public UserDto getUserById(@PathVariable("user-id") Long userId) {
-        return userService.getUserById(userId);
+        return userService.getUserDtoById(userId);
     }
 
     @GetMapping
