@@ -5,9 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.item.dto.CreateItemRequest;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.UpdateItemRequest;
+import ru.practicum.shareit.item.dto.*;
+
 import java.util.List;
 
 @RestController
@@ -23,9 +22,17 @@ public class ItemController {
         return itemService.createItem(request, userId);
     }
 
+    @PostMapping("/{item-id}/comment")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CommentDto saveComment(@Valid @RequestBody CreateCommentRequest request,
+                                  @PathVariable("item-id") Long itemId,
+                                  @RequestHeader(name = "X-Sharer-User-Id") Long userId) {
+        return itemService.createComment(request, itemId, userId);
+    }
+
     @PatchMapping("/{item-id}")
     @ResponseStatus(HttpStatus.OK)
-    public ItemDto update(@RequestBody UpdateItemRequest request,
+    public ItemDto update(@Valid @RequestBody UpdateItemRequest request,
                           @RequestHeader(name = "X-Sharer-User-Id") Long userId,
                           @PathVariable("item-id")  Long itemId) {
         return itemService.updateItem(request, userId, itemId);
@@ -34,17 +41,15 @@ public class ItemController {
     @DeleteMapping("/{item-id}")
     public ResponseEntity<String> delete(@PathVariable("item-id")  Long itemId,
                                          @RequestHeader(name = "X-Sharer-User-Id") Long userId) {
-        if (itemService.deleteItem(itemId, userId)) {
-            return new ResponseEntity<>("Item deleted", HttpStatus.OK);
-        } else  {
-            return new ResponseEntity<>("Error during deleting", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        itemService.deleteItem(itemId, userId);
+        return new ResponseEntity<>("Item deleted", HttpStatus.OK);
     }
 
     @GetMapping("/{item-id}")
     @ResponseStatus(HttpStatus.OK)
-    public ItemDto getItemById(@PathVariable("item-id")  Long itemId) {
-        return itemService.getItemById(itemId);
+    public ItemDto getItemById(@PathVariable("item-id")  Long itemId,
+                               @RequestHeader(name = "X-Sharer-User-Id") Long userId) {
+        return itemService.getItemDtoById(itemId, userId);
     }
 
     @GetMapping
