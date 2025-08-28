@@ -74,6 +74,39 @@ public class UserServiceImplTest {
     }
 
     @Test
+    void updateUserWithOldDataTest() {
+        CreateUserRequest createRequest = new CreateUserRequest();
+        createRequest.setName("Original Name");
+        createRequest.setEmail("original@test.com");
+        UserDto createdUser = userService.createUser(createRequest);
+
+        UpdateUserRequest updateRequest = new UpdateUserRequest();
+        updateRequest.setName("Updated Name");
+        updateRequest.setEmail("updated@test.com");
+
+        UserDto updatedUser = userService.updateUser(updateRequest, createdUser.getId());
+
+        assertNotNull(updatedUser);
+        assertEquals(createdUser.getId(), updatedUser.getId());
+        assertEquals("Updated Name", updatedUser.getName());
+        assertEquals("updated@test.com", updatedUser.getEmail());
+
+        updateRequest.setName(null);
+        updatedUser = userService.updateUser(updateRequest, createdUser.getId());
+        assertNotNull(updatedUser);
+        assertEquals("Updated Name", updatedUser.getName());
+
+        updateRequest.setEmail(null);
+        updatedUser = userService.updateUser(updateRequest, createdUser.getId());
+        assertNotNull(updatedUser);
+        assertEquals("updated@test.com", updatedUser.getEmail());
+
+        UserDto foundUser = userService.getUserDtoById(createdUser.getId());
+        assertEquals("Updated Name", foundUser.getName());
+        assertEquals("updated@test.com", foundUser.getEmail());
+    }
+
+    @Test
     void getAllUsersTest() {
         CreateUserRequest request1 = new CreateUserRequest();
         request1.setName("User 1");

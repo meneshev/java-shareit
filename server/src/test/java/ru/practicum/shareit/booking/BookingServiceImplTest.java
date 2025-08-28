@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.CreateBookingRequest;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.ItemService;
 import ru.practicum.shareit.item.dto.CreateItemRequest;
@@ -217,5 +218,98 @@ public class BookingServiceImplTest {
 
         assertEquals(1, allBookings.size());
         assertEquals(waitingBooking.getId(), allBookings.getFirst().getId());
+    }
+
+    @Test
+    void getBookingsByUserAndState_AllCurrentPastFutureWaitingRejected() {
+        CreateBookingRequest pastReq = new CreateBookingRequest();
+        pastReq.setItemId(testItem.getId());
+        pastReq.setStart(LocalDateTime.now().minusDays(5));
+        pastReq.setEnd(LocalDateTime.now().minusDays(3));
+        bookingService.createBooking(pastReq, bookerUser.getId());
+
+        CreateBookingRequest currReq = new CreateBookingRequest();
+        currReq.setItemId(testItem.getId());
+        currReq.setStart(LocalDateTime.now().minusHours(1));
+        currReq.setEnd(LocalDateTime.now().plusHours(1));
+        bookingService.createBooking(currReq, bookerUser.getId());
+        CreateBookingRequest futReq = new CreateBookingRequest();
+        futReq.setItemId(testItem.getId());
+        futReq.setStart(LocalDateTime.now().plusDays(2));
+        futReq.setEnd(LocalDateTime.now().plusDays(3));
+        bookingService.createBooking(futReq, bookerUser.getId());
+
+        List<BookingDto> all = bookingService.getBookingsByUserAndState(bookerUser.getId(), BookingState.ALL);
+        List<BookingDto> past = bookingService.getBookingsByUserAndState(bookerUser.getId(), BookingState.PAST);
+        List<BookingDto> fut = bookingService.getBookingsByUserAndState(bookerUser.getId(), BookingState.FUTURE);
+        List<BookingDto> waiting = bookingService.getBookingsByUserAndState(bookerUser.getId(), BookingState.WAITING);
+
+        assertEquals(3, all.size());
+        assertEquals(1, past.size());
+        assertEquals(1, fut.size());
+        assertEquals(3, waiting.size());
+    }
+
+    @Test
+    void getBookingsByOwnerAndState_AllCurrentPastFutureWaitingRejected() {
+        // создаём бронирования от имени bookerUser
+        CreateBookingRequest req = new CreateBookingRequest();
+        req.setItemId(testItem.getId());
+        req.setStart(LocalDateTime.now().plusDays(1));
+        req.setEnd(LocalDateTime.now().plusDays(2));
+        bookingService.createBooking(req, bookerUser.getId());
+
+        List<BookingDto> all = bookingService.getBookingsByOwnerAndState(ownerUser.getId(), BookingState.ALL);
+        List<BookingDto> waiting = bookingService.getBookingsByOwnerAndState(ownerUser.getId(), BookingState.WAITING);
+
+        assertEquals(1, all.size());
+        assertEquals(1, waiting.size());
+    }
+
+    @Test
+    void validateCreateBooking_InvalidScenarios() {
+        CreateBookingRequest sameOwnerReq = new CreateBookingRequest();
+        sameOwnerReq.setItemId(testItem.getId());
+        sameOwnerReq.setStart(LocalDateTime.now().plusDays(1));
+        sameOwnerReq.setEnd(LocalDateTime.now().plusDays(2));
+        assertThrows(ValidationException.class,
+                () -> bookingService.createBooking(sameOwnerReq, ownerUser.getId()));
+
+        CreateBookingRequest wrongDatesReq = new CreateBookingRequest();
+        wrongDatesReq.setItemId(testItem.getId());
+        wrongDatesReq.setStart(LocalDateTime.now().plusDays(5));
+        wrongDatesReq.setEnd(LocalDateTime.now().plusDays(1));
+        assertThrows(ValidationException.class,
+                () -> bookingService.createBooking(wrongDatesReq, bookerUser.getId()));
+
+        CreateBookingRequest equalDatesReq = new CreateBookingRequest();
+        equalDatesReq.setItemId(testItem.getId());
+        LocalDateTime point = LocalDateTime.now().plusDays(1);
+        equalDatesReq.setStart(point);
+        equalDatesReq.setEnd(point);
+        assertThrows(ValidationException.class,
+                () -> bookingService.createBooking(equalDatesReq, bookerUser.getId()));
+
+        CreateItemRequest unavailable = new CreateItemRequest();
+        unavailable.setName("X");
+        unavailable.setDescription("Y");
+        unavailable.setAvailable(false);
+        ItemDto item2 = itemService.createItem(unavailable, ownerUser.getId());
+        CreateBookingRequest unavailReq = new CreateBookingRequest();
+        unavailReq.setItemId(item2.getId());
+        unavailReq.setStart(LocalDateTime.now().plusDays(1));
+        unavailReq.setEnd(LocalDateTime.now().plusDays(2));
+        assertThrows(ValidationException.class,
+                () -> bookingService.createBooking(unavailReq, bookerUser.getId()));
+    }
+
+    @Test
+    void validateCreateBooking_UserNotFound() {
+        CreateBookingRequest req = new CreateBookingRequest();
+        req.setItemId(testItem.getId());
+        req.setStart(LocalDateTime.now().plusDays(1));
+        req.setEnd(LocalDateTime.now().plusDays(2));
+        assertThrows(NotFoundException.class,
+                () -> bookingService.createBooking(req, 999L));
     }
 }
