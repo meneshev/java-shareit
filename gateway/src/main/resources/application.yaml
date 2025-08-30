@@ -1,0 +1,14 @@
+# Настройки логирования
+logging:
+  level:
+    org.springframework.web.client.RestTemplate: DEBUG
+    # org.apache.http: DEBUG
+    # httpclient.wire: DEBUG
+
+# Настройки сервера
+server:
+  port: 8080
+
+# Кастомные настройки приложения
+shareit-server:
+  url: http://localhost:9090
